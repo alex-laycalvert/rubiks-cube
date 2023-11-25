@@ -1,0 +1,20 @@
+{
+  "name": "multi-window-shenanigans",
+  "version": "1.0.0",
+  "description": "Check out the demo [here](https://multi-window.alexlc.org).",
+  "main": "broadcast-basics.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.158.0",
+    "uuid": "^9.0.1",
+    "yjs": "^13.6.10"
+  },
+  "devDependencies": {
+    "vite": "^5.0.2"
+  }
+}
