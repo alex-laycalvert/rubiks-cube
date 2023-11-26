@@ -12,7 +12,9 @@ const solvedMap = new Map();
 const cube = generateCube();
 colorCube(cube);
 
-wss.on("connection", (ws) => {
+console.log("Starting Server");
+wss.on("connection", (ws, req) => {
+    console.log("Connection received:", req.socket.remoteAddress);
     ws.on("error", console.error);
     ws.on("message", (message) => {
         const data = JSON.parse(message);

@@ -26,7 +26,7 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setSize(Settings.WIDTH, Settings.HEIGHT);
 document.body.replaceChildren(renderer.domElement);
 
-const ws = new WebSocket("ws://localhost:8888");
+const ws = new WebSocket("ws://localhost:8880");
 ws.onmessage = async (e) => {
     const cubeData = JSON.parse(e.data);
     const cube = cubeData.cube.map((s) => {
