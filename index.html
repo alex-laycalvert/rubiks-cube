@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
@@ -6,11 +6,52 @@
         <title>Rubiks Cube & Web Sockets</title>
         <script type="module" src="/script.js"></script>
         <style>
-			* {
-				margin: 0;
-				padding: 0;
-			}
+            * {
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                touch-action: none;
+            }
+
+            #controls {
+                position: absolute;
+                top: 0;
+                left: 0;
+                padding: 20px;
+                display: flex;
+                grid-gap: 0.5rem;;
+                flex-wrap: wrap;
+            }
+
+            button {
+                user-select: none;
+                font-size: 1.1rem;
+                padding: 5px 10px;
+            }
         </style>
     </head>
-    <body></body>
+    <body>
+        <div id="controls">
+            <button id="reset-button" title="Resets cube back to solved">
+                Reset
+            </button>
+            <button
+                id="scramble-button"
+                title="Scrambles the cube using 20 randomly generated moves"
+            >
+                Scramble
+            </button>
+            <button
+                id="checkerboard-button"
+                title="Creates a checkerboard pattern"
+            >
+                Checkerboard
+            </button>
+            <button id="zoom-out-button">Zoom Out</button>
+            <button id="zoom-in-button">Zoom In</button>
+        </div>
+        <div id="rubiks-container"></div>
+    </body>
 </html>

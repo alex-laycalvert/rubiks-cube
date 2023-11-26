@@ -9,8 +9,7 @@ const wss = new WebSocketServer({ port: 8888 });
 
 /** @type Map<string, string> */
 const solvedMap = new Map();
-const cube = generateCube();
-colorCube(cube);
+let cube = generateCube();
 
 console.log("Starting Server");
 wss.on("connection", (ws, req) => {
@@ -21,6 +20,31 @@ wss.on("connection", (ws, req) => {
         switch (data.event) {
             case "ROTATE":
                 rotateCube(cube, data.face, data.rotation);
+                broadcast(encode(cube));
+                break;
+            case "RESET":
+                cube = generateCube();
+                broadcast(encode(cube));
+                break;
+            case "SCRAMBLE":
+                cube = generateCube();
+                scrambleCube(cube);
+                broadcast(encode(cube));
+                break;
+            case "CHECKERBOARD":
+                cube = generateCube();
+                rotateCube(cube, "RED", "CLOCKWISE");
+                rotateCube(cube, "RED", "CLOCKWISE");
+                rotateCube(cube, "ORANGE", "CLOCKWISE");
+                rotateCube(cube, "ORANGE", "CLOCKWISE");
+                rotateCube(cube, "BLUE", "CLOCKWISE");
+                rotateCube(cube, "BLUE", "CLOCKWISE");
+                rotateCube(cube, "GREEN", "CLOCKWISE");
+                rotateCube(cube, "GREEN", "CLOCKWISE");
+                rotateCube(cube, "WHITE", "CLOCKWISE");
+                rotateCube(cube, "WHITE", "CLOCKWISE");
+                rotateCube(cube, "YELLOW", "CLOCKWISE");
+                rotateCube(cube, "YELLOW", "CLOCKWISE");
                 broadcast(encode(cube));
                 break;
         }
@@ -40,6 +64,14 @@ function broadcast(data) {
 function encode(cube) {
     return JSON.stringify({
         isSolved: isSolved(cube),
+        centers: {
+            [cube[2][1][1][0].uuid]: "RED",
+            [cube[0][1][1][0].uuid]: "ORANGE",
+            [cube[1][1][2][0].uuid]: "BLUE",
+            [cube[1][1][0][0].uuid]: "GREEN",
+            [cube[1][2][1][0].uuid]: "WHITE",
+            [cube[1][0][1][0].uuid]: "YELLOW",
+        },
         cube: cube.map((s) => {
             return s.map((r) => {
                 return r.map((c) => {
@@ -67,13 +99,12 @@ function encode(cube) {
 
 /**
  * @param {THREE.Mesh<THREE.BufferGeometry<THREE.NormalBufferAttributes>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>[][][][]} cube
- * @param {string} face
+ * @param {'RED'|'ORANGE'|'BLUE'|'GREEN'|'YELLOW'|'WHITE'} face
  * @param {'CLOCKWISE'|'COUNTERCLOCKWISE'} rotation
  */
 function rotateCube(cube, face, rotation) {
     const rotationFactor = rotation === "CLOCKWISE" ? -1 : 1;
-    if (face === cube[2][1][1][0].uuid) {
-        // RED
+    if (face === "RED") {
         const meshes = [
             ...cube[2][0][0],
             ...cube[2][0][1],
@@ -115,8 +146,7 @@ function rotateCube(cube, face, rotation) {
             cube[2][1][2] = cube[2][2][1];
             cube[2][2][1] = tmp;
         }
-    } else if (face === cube[0][1][1][0].uuid) {
-        // ORANGE
+    } else if (face === "ORANGE") {
         const meshes = [
             ...cube[0][0][0],
             ...cube[0][0][1],
@@ -129,9 +159,9 @@ function rotateCube(cube, face, rotation) {
             ...cube[0][2][2],
         ];
         meshes.forEach((mesh) => {
-            mesh.rotateOnWorldAxis(Z, (rotationFactor * Math.PI) / 2);
+            mesh.rotateOnWorldAxis(Z, (-rotationFactor * Math.PI) / 2);
         });
-        if (rotationFactor === 1) {
+        if (rotation === "CLOCKWISE") {
             // adjust corners
             let tmp = cube[0][2][0];
             cube[0][2][0] = cube[0][2][2];
@@ -144,7 +174,8 @@ function rotateCube(cube, face, rotation) {
             cube[0][2][1] = cube[0][1][2];
             cube[0][1][2] = cube[0][0][1];
             cube[0][0][1] = tmp;
-        } else if (rotationFactor === -1) {
+        } else {
+            console.log("doing that");
             // adjust corners
             let tmp = cube[0][2][0];
             cube[0][2][0] = cube[0][0][0];
@@ -158,8 +189,7 @@ function rotateCube(cube, face, rotation) {
             cube[0][1][2] = cube[0][2][1];
             cube[0][2][1] = tmp;
         }
-    } else if (face === cube[1][1][2][0].uuid) {
-        // BLUE
+    } else if (face === "BLUE") {
         const meshes = [
             ...cube[0][0][2],
             ...cube[1][0][2],
@@ -201,8 +231,7 @@ function rotateCube(cube, face, rotation) {
             cube[0][1][2] = cube[1][2][2];
             cube[1][2][2] = tmp;
         }
-    } else if (face === cube[1][1][0][0].uuid) {
-        // GREEN
+    } else if (face === "GREEN") {
         const meshes = [
             ...cube[0][0][0],
             ...cube[1][0][0],
@@ -215,9 +244,9 @@ function rotateCube(cube, face, rotation) {
             ...cube[2][2][0],
         ];
         meshes.forEach((mesh) => {
-            mesh.rotateOnWorldAxis(X, (rotationFactor * Math.PI) / 2);
+            mesh.rotateOnWorldAxis(X, (-rotationFactor * Math.PI) / 2);
         });
-        if (rotation === "COUNTERCLOCKWISE") {
+        if (rotation === "CLOCKWISE") {
             // adjust corners
             let tmp = cube[2][2][0];
             cube[2][2][0] = cube[0][2][0];
@@ -244,8 +273,7 @@ function rotateCube(cube, face, rotation) {
             cube[0][1][0] = cube[1][2][0];
             cube[1][2][0] = tmp;
         }
-    } else if (face === cube[1][2][1][0].uuid) {
-        // WHITE
+    } else if (face === "WHITE") {
         const meshes = [
             ...cube[0][2][0],
             ...cube[0][2][1],
@@ -283,8 +311,7 @@ function rotateCube(cube, face, rotation) {
             cube[1][2][2] = cube[0][2][1];
             cube[0][2][1] = tmp;
         }
-    } else if (face === cube[1][0][1][0].uuid) {
-        // YELLOW
+    } else if (face === "YELLOW") {
         const meshes = [
             ...cube[0][0][0],
             ...cube[0][0][1],
@@ -297,9 +324,9 @@ function rotateCube(cube, face, rotation) {
             ...cube[2][0][2],
         ];
         meshes.forEach((mesh) => {
-            mesh.rotateOnWorldAxis(Y, (rotationFactor * Math.PI) / 2);
+            mesh.rotateOnWorldAxis(Y, (-rotationFactor * Math.PI) / 2);
         });
-        if (rotation === "COUNTERCLOCKWISE") {
+        if (rotation === "CLOCKWISE") {
             let tmp = cube[0][0][0];
             cube[0][0][0] = cube[0][0][2];
             cube[0][0][2] = cube[2][0][2];
@@ -423,6 +450,7 @@ function generateCube() {
             }
         }
     }
+    colorCube(cube);
     return cube;
 }
 
@@ -566,4 +594,21 @@ function absSum(...nums) {
         sum += Math.abs(nums[i]);
     }
     return sum;
+}
+
+/**
+ * @param {THREE.Mesh<THREE.BufferGeometry<THREE.NormalBufferAttributes>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>[][][][]} cube
+ */
+function scrambleCube(cube) {
+    const faces = ["RED", "ORANGE", "BLUE", "GREEN", "YELLOW", "WHITE"];
+    const scrambles = [];
+    for (let i = 0; i < 20; i++) {
+        scrambles.push({
+            face: faces[Math.floor(Math.random() * faces.length)],
+            rotation: Math.random() < 0.5 ? "CLOCKWISE" : "COUNTERCLOCKWISE",
+        });
+    }
+    for (let i = 0; i < scrambles.length; i++) {
+        rotateCube(cube, scrambles[i].face, scrambles[i].rotation);
+    }
 }

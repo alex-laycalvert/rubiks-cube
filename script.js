@@ -24,11 +24,19 @@ const camera = new THREE.PerspectiveCamera(
 );
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(Settings.WIDTH, Settings.HEIGHT);
-document.body.replaceChildren(renderer.domElement);
+
+const container = document.querySelector("#rubiks-container");
+if (!container) {
+    throw new Error("`canvas` element must be present");
+}
+container.replaceChildren(renderer.domElement);
+
+let centers = {};
 
 const ws = new WebSocket("ws://localhost:8888");
 ws.onmessage = async (e) => {
     const cubeData = JSON.parse(e.data);
+    centers = cubeData.centers;
     const cube = cubeData.cube.map((s) => {
         return s.map((r) => {
             return r.map((c) => {
@@ -69,13 +77,7 @@ let current = null;
 camera.position.z = 5;
 function render() {
     window.requestAnimationFrame(render);
-    raycaster.setFromCamera(pointer, camera);
-    const intersections = raycaster
-        .intersectObjects(scene.children, false)
-        .filter((i) => i.object instanceof THREE.Mesh);
-    /** @type THREE.Mesh<THREE.BufferGeometry<THREE.NormalBufferAttributes>, THREE.Material | THREE.Material[], THREE.Object3DEventMap> */
-    const object = intersections[0]?.object;
-    current = object ?? null;
+    setCurrentIntersection();
     renderer.render(scene, camera);
 }
 
@@ -87,37 +89,97 @@ const mouse = {
     y: 0,
 };
 
-window.addEventListener("mousedown", (e) => {
-    if (!current) {
-        mouse.moving = true;
+/**
+ * @param {number} x
+ * @param {number} y
+ */
+function pan(x, y) {
+    if (mouse.moving) {
+        const deltaX = x - mouse.x;
+        const deltaY = y - mouse.y;
+        scene.rotateOnWorldAxis(Y, deltaX / 250);
+        scene.rotateOnWorldAxis(X, deltaY / 250);
+    }
+    mouse.x = x;
+    mouse.y = y;
+}
+
+/**
+ * @param {number} x
+ * @param {number} y
+ */
+function setPointer(x, y) {
+    pointer.x = (x / Settings.WIDTH) * 2 - 1;
+    pointer.y = (-y / Settings.HEIGHT) * 2 + 1;
+}
+
+function setCurrentIntersection() {
+    raycaster.setFromCamera(pointer, camera);
+    const intersections = raycaster
+        .intersectObjects(scene.children, false)
+        .filter((i) => i.object instanceof THREE.Mesh);
+    /** @type THREE.Mesh<THREE.BufferGeometry<THREE.NormalBufferAttributes>, THREE.Material | THREE.Material[], THREE.Object3DEventMap> */
+    const object = intersections[0]?.object;
+    current = object ?? null;
+}
+
+window.addEventListener("pointerdown", (e) => {
+    setPointer(e.clientX, e.clientY);
+    setCurrentIntersection();
+    mouse.moving = true;
+    if (Math.abs(e.clientX - mouse.x) > 20) {
+        mouse.x = e.clientX;
+    }
+    if (Math.abs(e.clientY - mouse.y) > 20) {
+        mouse.y = e.clientY;
+    }
+    let face = centers[current?.uuid];
+    if (!face) {
         return;
     }
     ws.send(
         JSON.stringify({
             event: "ROTATE",
-            face: current.uuid,
+            face,
             rotation: e.button === 0 ? "CLOCKWISE" : "COUNTERCLOCKWISE",
         }),
     );
 });
-window.addEventListener("mouseup", () => {
+window.addEventListener("pointerup", () => {
     mouse.moving = false;
-});
-window.addEventListener("mousemove", (e) => {
-    if (mouse.moving) {
-        const deltaX = e.clientX - mouse.x;
-        const deltaY = e.clientY - mouse.y;
-        scene.rotateOnWorldAxis(Y, deltaX / 250);
-        scene.rotateOnWorldAxis(X, deltaY / 250);
-    }
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
 });
 window.addEventListener("wheel", (e) => {
     camera.position.z += e.deltaY / 500;
 });
 window.addEventListener("pointermove", (e) => {
-    pointer.x = (e.clientX / Settings.WIDTH) * 2 - 1;
-    pointer.y = (-e.clientY / Settings.HEIGHT) * 2 + 1;
+    setPointer(e.clientX, e.clientY);
+    pan(e.clientX, e.clientY);
 });
 window.addEventListener("contextmenu", (e) => e.preventDefault());
+document.querySelector("#reset-button").addEventListener("click", () => {
+    ws.send(
+        JSON.stringify({
+            event: "RESET",
+        }),
+    );
+});
+document.querySelector("#scramble-button").addEventListener("click", () => {
+    ws.send(
+        JSON.stringify({
+            event: "SCRAMBLE",
+        }),
+    );
+});
+document.querySelector("#checkerboard-button").addEventListener("click", () => {
+    ws.send(
+        JSON.stringify({
+            event: "CHECKERBOARD",
+        }),
+    );
+});
+document.querySelector("#zoom-out-button").addEventListener("click", () => {
+    camera.position.z += 1;
+});
+document.querySelector("#zoom-in-button").addEventListener("click", () => {
+    camera.position.z -= 1;
+});
