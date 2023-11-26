@@ -5,6 +5,29 @@ const X = new THREE.Vector3(1, 0, 0);
 const Y = new THREE.Vector3(0, 1, 0);
 const Z = new THREE.Vector3(0, 0, 1);
 
+/** @type {readonly ["F", "F'", "F2", "B", "B'", "B2", "U", "U'", "U2", "D", "D'", "D2", "R", "R'", "R2", "L", "L'", "L2"]} */
+const MOVES = [
+    "F",
+    "F'",
+    "F2",
+    "B",
+    "B'",
+    "B2",
+    "U",
+    "U'",
+    "U2",
+    "D",
+    "D'",
+    "D2",
+    "R",
+    "R'",
+    "R2",
+    "L",
+    "L'",
+    "L2",
+];
+/** @typedef {(typeof MOVES)[number]} Move */
+
 const wss = new WebSocketServer({ port: 8888 });
 
 /** @type Map<string, string> */
@@ -19,7 +42,7 @@ wss.on("connection", (ws, req) => {
         const data = JSON.parse(message);
         switch (data.event) {
             case "ROTATE":
-                rotateCube(cube, data.face, data.rotation);
+                rotateCubeFace(cube, data.face, data.rotation);
                 broadcast(encode(cube));
                 break;
             case "RESET":
@@ -33,18 +56,7 @@ wss.on("connection", (ws, req) => {
                 break;
             case "CHECKERBOARD":
                 cube = generateCube();
-                rotateCube(cube, "RED", "CLOCKWISE");
-                rotateCube(cube, "RED", "CLOCKWISE");
-                rotateCube(cube, "ORANGE", "CLOCKWISE");
-                rotateCube(cube, "ORANGE", "CLOCKWISE");
-                rotateCube(cube, "BLUE", "CLOCKWISE");
-                rotateCube(cube, "BLUE", "CLOCKWISE");
-                rotateCube(cube, "GREEN", "CLOCKWISE");
-                rotateCube(cube, "GREEN", "CLOCKWISE");
-                rotateCube(cube, "WHITE", "CLOCKWISE");
-                rotateCube(cube, "WHITE", "CLOCKWISE");
-                rotateCube(cube, "YELLOW", "CLOCKWISE");
-                rotateCube(cube, "YELLOW", "CLOCKWISE");
+                execute(cube, "F2", "B2", "U2", "D2", "R2", "L2");
                 broadcast(encode(cube));
                 break;
         }
@@ -99,10 +111,81 @@ function encode(cube) {
 
 /**
  * @param {THREE.Mesh<THREE.BufferGeometry<THREE.NormalBufferAttributes>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>[][][][]} cube
+ * @param {Move[]} moves
+ */
+function execute(cube, ...moves) {
+    for (let i = 0; i < moves.length; i++) {
+        switch (moves[i]) {
+            case "F":
+                rotateCubeFace(cube, "RED", "CLOCKWISE");
+                continue;
+            case "F'":
+                rotateCubeFace(cube, "RED", "COUNTERCLOCKWISE");
+                continue;
+            case "F2":
+                rotateCubeFace(cube, "RED", "CLOCKWISE");
+                rotateCubeFace(cube, "RED", "CLOCKWISE");
+                continue;
+            case "B":
+                rotateCubeFace(cube, "ORANGE", "CLOCKWISE");
+                continue;
+            case "B'":
+                rotateCubeFace(cube, "ORANGE", "COUNTERCLOCKWISE");
+                continue;
+            case "B2":
+                rotateCubeFace(cube, "ORANGE", "CLOCKWISE");
+                rotateCubeFace(cube, "ORANGE", "CLOCKWISE");
+                continue;
+            case "U":
+                rotateCubeFace(cube, "WHITE", "CLOCKWISE");
+                continue;
+            case "U'":
+                rotateCubeFace(cube, "WHITE", "COUNTERCLOCKWISE");
+                continue;
+            case "U2":
+                rotateCubeFace(cube, "WHITE", "CLOCKWISE");
+                rotateCubeFace(cube, "WHITE", "CLOCKWISE");
+                continue;
+            case "D":
+                rotateCubeFace(cube, "YELLOW", "CLOCKWISE");
+                continue;
+            case "D'":
+                rotateCubeFace(cube, "YELLOW", "COUNTERCLOCKWISE");
+                continue;
+            case "D2":
+                rotateCubeFace(cube, "YELLOW", "CLOCKWISE");
+                rotateCubeFace(cube, "YELLOW", "CLOCKWISE");
+                continue;
+            case "R":
+                rotateCubeFace(cube, "BLUE", "CLOCKWISE");
+                continue;
+            case "R'":
+                rotateCubeFace(cube, "BLUE", "COUNTERCLOCKWISE");
+                continue;
+            case "R2":
+                rotateCubeFace(cube, "BLUE", "CLOCKWISE");
+                rotateCubeFace(cube, "BLUE", "CLOCKWISE");
+                continue;
+            case "L":
+                rotateCubeFace(cube, "GREEN", "CLOCKWISE");
+                continue;
+            case "L'":
+                rotateCubeFace(cube, "GREEN", "COUNTERCLOCKWISE");
+                continue;
+            case "L2":
+                rotateCubeFace(cube, "GREEN", "CLOCKWISE");
+                rotateCubeFace(cube, "GREEN", "CLOCKWISE");
+                continue;
+        }
+    }
+}
+
+/**
+ * @param {THREE.Mesh<THREE.BufferGeometry<THREE.NormalBufferAttributes>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>[][][][]} cube
  * @param {'RED'|'ORANGE'|'BLUE'|'GREEN'|'YELLOW'|'WHITE'} face
  * @param {'CLOCKWISE'|'COUNTERCLOCKWISE'} rotation
  */
-function rotateCube(cube, face, rotation) {
+function rotateCubeFace(cube, face, rotation) {
     const rotationFactor = rotation === "CLOCKWISE" ? -1 : 1;
     if (face === "RED") {
         const meshes = [
@@ -600,15 +683,7 @@ function absSum(...nums) {
  * @param {THREE.Mesh<THREE.BufferGeometry<THREE.NormalBufferAttributes>, THREE.Material | THREE.Material[], THREE.Object3DEventMap>[][][][]} cube
  */
 function scrambleCube(cube) {
-    const faces = ["RED", "ORANGE", "BLUE", "GREEN", "YELLOW", "WHITE"];
-    const scrambles = [];
     for (let i = 0; i < 20; i++) {
-        scrambles.push({
-            face: faces[Math.floor(Math.random() * faces.length)],
-            rotation: Math.random() < 0.5 ? "CLOCKWISE" : "COUNTERCLOCKWISE",
-        });
-    }
-    for (let i = 0; i < scrambles.length; i++) {
-        rotateCube(cube, scrambles[i].face, scrambles[i].rotation);
+        execute(cube, MOVES[Math.floor(Math.random() * MOVES.length)]);
     }
 }
