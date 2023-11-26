@@ -6,7 +6,6 @@ COPY package*.json ./
 
 RUN npm install
 
-COPY ./node_modules ./
 COPY ./server.js ./
 
 EXPOSE 8888
